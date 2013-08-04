@@ -21,17 +21,13 @@ RGeo::Shapefile::Reader.open(shapefile) do |file|
   puts "File contains #{file.num_records} records."
   segments = [[], [], [], []]
   done = false
-  until done
-    Benchmark.bm do |x|
+  Benchmark.bm(25) do |x|
+    file.num_records.times do |n|
       record = nil
-      x.report { record = file.next }
+      x.report("loading shape #{n + 1}") { record = file.next }
       if record
-        x.report do
-          name = record.attributes["NAMELSAD"]
-          latlongs.each do |point|
-            #puts " Found: #{point} in #{name}" if 
-            point.within?(record.geometry)
-          end
+        x.report(record.attributes["NAMELSAD"]) do
+          latlongs.each { |point| point.within?(record.geometry) }
         end
       else
         done = true
