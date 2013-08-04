@@ -1,7 +1,7 @@
 require 'httparty'
 require 'json'
 
-puts "Generating list of random latlongs"
+puts "Generating list of latlongs"
 
 latlongs = []
 (25...55).each do |lat|
@@ -19,7 +19,7 @@ end
 threads = []
 
 segments = []
-segment_count = 1000
+segment_count = 10000
 segment_count.times do |n|
   start_index = n * (latlongs.size / segment_count)
   end_index = (n + 1) * (latlongs.size / segment_count) - 1
