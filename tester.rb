@@ -4,14 +4,19 @@ require 'rgeo/shapefile'
 puts "Generating list of random latlongs"
 
 latlongs = []
+counties = {}
 rnd = Random.new
 fact = RGeo::Geos.factory
-100_000.times do |n|
-  puts "#{n} generated..." if n % 10000 == 0
-  lat = rnd.rand(10).to_f + 35.0 + rnd.rand
-  long = rnd.rand(40).to_f + 70 + rnd.rand
-  long *= -1
-  latlongs << fact.point(long, lat)
+(35...45).each do |lat|
+  (70...120).each do |long|
+    10.times do |lat_dec|
+      10.times do |long_dec|
+        lat_real = lat.to_f + (lat_dec.to_f / 10.0)
+        long_real = long.to_f + (long_dec.to_f / 10.0)
+        latlongs << fact.point(long_real * -1, lat_real)
+      end
+    end
+  end
 end
 
 require 'benchmark'
@@ -19,38 +24,34 @@ require 'benchmark'
 shapefile = 'shapefile/tl_2012_us_county.shp'
 RGeo::Shapefile::Reader.open(shapefile) do |file|
   puts "File contains #{file.num_records} records."
-  segments = [[], [], [], []]
+  puts "Lat-Long contains #{latlongs.size} points."
+
+  # Right now the records are just in an array
+  # but we could build a trie or quad tree around the
+  # enclosures of each shape to make searching for each one
+  # even faster. This would essentially be an index on top
+  # of the polygon records.
+  records = []
   done = false
   Benchmark.bm(25) do |x|
-    file.num_records.times do |n|
-      record = nil
-      x.report("loading shape #{n + 1}") { record = file.next }
-      if record
-        x.report(record.attributes["NAMELSAD"]) do
-          latlongs.each { |point| point.within?(record.geometry) }
+    x.report("loading all shapes") do
+      file.each { |record| records << record }
+    end
+
+    x.report("Processing shapes") do
+      latlongs.each do |point|
+        records.each do |record|
+          counties[record.attributes["NAMELSAD"]] ||= []
+          if point.within?(record.geometry)
+            counties[record.attributes["NAMELSAD"]] << point
+            break # found a county, all for this point
+          end
         end
-      else
-        done = true
       end
     end
   end
-
-  # file.each do |record|
-  #   segments[record.index % 4] << record
-  #   puts "#{record.index} - #{record.attributes["NAMELSAD"]}"
-  # end
-
-  # 4.times do |segment|
-  #   Process.fork do
-  #     segments[segment].each do |record|
-  #       name = record.attributes["NAMELSAD"]
-  #       latlongs.each do |point|
-  #         puts " Found: #{point} in #{name}" if point.within?(record.geometry)
-  #       end
-  #     end
-  #   end
-  # end
-  # file.rewind
-  record = file.next
-  puts "First record geometry was: #{record.geometry.as_text}"
+end
+counties = counties.to_a.sort_by { |k, points| points.size }
+counties.each do |county, points|
+  puts "% 25s %d" % [county, points.size]
 end
