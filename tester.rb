@@ -15,6 +15,7 @@ latlongs = []
     end
   end
 end
+puts "#{latlongs.size} coords"
 
 threads = []
 
