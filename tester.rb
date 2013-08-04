@@ -16,7 +16,7 @@ end
 
 require 'benchmark'
 
-shapefile = '/Users/kbacha/Downloads/tl_2012_us_county/tl_2012_us_county.shp'
+shapefile = 'shapefile/tl_2012_us_county.shp'
 RGeo::Shapefile::Reader.open(shapefile) do |file|
   puts "File contains #{file.num_records} records."
   segments = [[], [], [], []]
